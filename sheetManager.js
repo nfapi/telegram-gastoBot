@@ -127,3 +127,64 @@ function getUserDisplayName(from) {
   }
   return 'User';
 }
+
+/**
+ * Genera un reporte de gastos del mes corriente (actual).
+ * Filtra por fecha y agrupa por categoría.
+ */
+function reporteMes(sheetName) {
+  var expenses = getUserExpenses(sheetName);
+  var now = new Date();
+  var mesActual = now.getMonth();
+  var anioActual = now.getFullYear();
+  
+  const categoryTotals = {};
+  let grandTotal = 0;
+  let count = 0;
+
+  // Filtrar gastos del mes actual
+  expenses.forEach((expense) => {
+    var expenseDate = new Date(expense.date);
+    if (expenseDate.getMonth() === mesActual && expenseDate.getFullYear() === anioActual) {
+      if (!categoryTotals[expense.category]) {
+        categoryTotals[expense.category] = 0;
+      }
+      categoryTotals[expense.category] += expense.amount;
+      grandTotal += expense.amount;
+      count++;
+    }
+  });
+
+  // Si no hay gastos en el mes actual
+  if (count === 0) {
+    return '📊 Reporte del mes actual\n\nSin gastos registrados este mes.';
+  }
+
+  // Ordenar categorías por total (descendente)
+  const sortedCategories = Object.entries(categoryTotals).sort((a, b) => b[1] - a[1]);
+
+  let report = '📊 Reporte del mes actual\n\n';
+
+  sortedCategories.forEach(([category, total]) => {
+    const percentage = ((total / grandTotal) * 100).toFixed(1);
+    const montoFormateado = new Intl.NumberFormat('es-ES', {
+      style: 'currency',
+      currency: 'ARS',
+      currencyDisplay: 'symbol',
+      minimumFractionDigits: 2
+    }).format(total);
+    report += `${category}: ${montoFormateado} (${percentage}%)\n`;
+  });
+
+  const totalFormateado = new Intl.NumberFormat('es-ES', {
+    style: 'currency',
+    currency: 'ARS',
+    currencyDisplay: 'symbol',
+    minimumFractionDigits: 2
+  }).format(grandTotal);
+
+  report += `\n💰 Total: ${totalFormateado}`;
+  report += `\n📈 Registros: ${count}`;
+
+  return report;
+}

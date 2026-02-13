@@ -10,6 +10,12 @@ function doPost(e) {
     var chat_id = msg.chat.id;
     var text = msg.text;
 
+    // Verificar si es un comando
+    if (text.startsWith('/')) {
+      manejarComando(chat_id, text, msg.chat);
+      return;
+    }
+
     var expense = parseExpense(text);
     // Si no pudimos parsear, avisar y no agregar
     if (!expense) {
@@ -29,6 +35,28 @@ function doPost(e) {
   }
   catch(error){
     logOnSheet(error);
+  }
+}
+
+/**
+ * Maneja comandos de Telegram (/reporte, /ayuda, etc).
+ */
+function manejarComando(chat_id, comando, chat) {
+  var comandoLimpio = comando.toLowerCase().trim();
+  
+  if (comandoLimpio === '/reporte') {
+    var sheetName = getChatDisplayName(chat);
+    var reporteMsg = reporteMes(sheetName);
+    sendResponse(chat_id, reporteMsg);
+  } else if (comandoLimpio === '/ayuda') {
+    var ayuda = "📋 Comandos disponibles:\n\n" +
+                "/reporte - Ver gastos del mes actual por categoría\n" +
+                "/ayuda - Ver esta ayuda\n\n" +
+                "📝 Para registrar un gasto, envía:\n" +
+                "'Categoria monto' (ej: 'Café 150')";
+    sendResponse(chat_id, ayuda);
+  } else {
+    sendResponse(chat_id, "Comando no reconocido. Usa /ayuda para ver los comandos.");
   }
 }
 
