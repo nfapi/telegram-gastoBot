@@ -36,3 +36,31 @@ function setTelegramToken(token){
   PropertiesService.getScriptProperties().setProperty('TELEGRAM_BOT_TOKEN', token);
   Logger.log('TELEGRAM_BOT_TOKEN set');
 }
+
+/**
+ * Formatea un objeto `expense` en un mensaje legible para el usuario.
+ * Mantener la lógica de presentación separada del endpoint `doPost`.
+ */
+function crearMensajeDeRespuesta(expense){
+  var fechaLegible = expense.date.toLocaleString('es-ES', { 
+    day: '2-digit', 
+    month: '2-digit', 
+    year: 'numeric', 
+    hour: '2-digit', 
+    minute: '2-digit'
+  });
+
+  var montoFormateado = new Intl.NumberFormat('es-ES', {
+    style: 'currency',
+    currency: 'ARS',
+    currencyDisplay: 'symbol',
+    minimumFractionDigits: 2
+  }).format(expense.amount);
+  
+  var mensaje = "✅ ¡Mensaje recibido!\n" + 
+           "📂 " + expense.category + ": " + montoFormateado + "\n" + 
+           "📅 " + fechaLegible + "\n" + 
+           (expense.note ? ("📄 " + expense.note + "\n") : "");
+
+  return mensaje;
+}

@@ -11,73 +11,46 @@ function doPost(e) {
     var text = msg.text;
 
     var expense = parseExpense(text);
+    // Si no pudimos parsear, avisar y no agregar
+    if (!expense) {
+      sendResponse(chat_id, "No pude interpretar el gasto. Usa formato: 'Categoria 123.45'");
+      return;
+    }
 
-    // Registrar el mensaje en Google Sheets
-    var sheet = getSpreadsheet(chat_id);
+    // Obtener nombre legible del chat (grupo o usuario)
+    var sheetName = getChatDisplayName(msg.chat);
+    
+    // Registrar el gasto en Google Sheets
+    var sheet = getSpreadsheet(sheetName, chat_id);
     addExpense(sheet, expense, msg);
-    //Logger.log(e.postData.contents);
 
-    // Opcional: Enviar una respuesta de vuelta al usuario
-    sendResponse(chat_id, crearMensajeDeRespuesta(expense))
+    // Enviar una confirmación al usuario (mensaje formateado en `telegramManager`)
+    sendResponse(chat_id, crearMensajeDeRespuesta(expense));
   }
   catch(error){
     logOnSheet(error);
   }
 }
 
-function crearMensajeDeRespuesta(expense){
-  var fechaLegible = expense.date.toLocaleString('es-ES', { 
-    day: '2-digit', 
-    month: '2-digit', 
-    year: 'numeric', 
-    hour: '2-digit', 
-    minute: '2-digit',
-    second: '2-digit'
-  });
-
-  var montoFormateado = new Intl.NumberFormat('es-ES', {
-    style: 'currency',
-    currency: 'ARS', 
-    minimumFractionDigits: 2 // Si no quieres decimales, usa 0
-  }).format(expense.amount);
-  
-  var mensaje = "✅ ¡Mensaje recibido!\n" + 
-           "📂 " + expense.category + ": 💸 " + montoFormateado + "\n" + 
-           "📅 Fecha: " + fechaLegible + "\n" + 
-           "📄 Nota: " + expense.note + "\n";
-
-  return mensaje;
-}
-
-function reporte(chat_id){
-  var expenses = getUserExpenses(chat_id);
-
-  const categoryTotals = {};
-  let grandTotal = 0;
-
-  expenses.forEach((expense) => {
-    if (!categoryTotals[expense.category]) {
-      categoryTotals[expense.category] = 0;
+/**
+ * Extrae el nombre legible del chat (nombre del grupo o usuario).
+ */
+function getChatDisplayName(chat) {
+  // Para grupos: usar el title
+  if (chat.type === 'group' || chat.type === 'supergroup') {
+    return chat.title || ('Group_' + chat.id);
+  }
+  // Para usuarios privados: usar username o nombre(s)
+  if (chat.username) {
+    return '@' + chat.username;
+  }
+  if (chat.first_name) {
+    var fullName = chat.first_name;
+    if (chat.last_name) {
+      fullName += ' ' + chat.last_name;
     }
-    categoryTotals[expense.category] += expense.amount;
-    grandTotal += expense.amount;
-  });
-
-  // Sort categories by total (descending)
-  const sortedCategories = Object.entries(categoryTotals).sort(
-    (a, b) => b[1] - a[1]
-  );
-
-  // Build report message
-  let report = '📊 Monthly Expense Report\n\n';
-
-  sortedCategories.forEach(([category, total]) => {
-    const percentage = ((total / grandTotal) * 100).toFixed(1);
-    report += `${category}: $${total.toFixed(2)} (${percentage}%)\n`;
-  });
-
-  report += `\n💰 Total: $${grandTotal.toFixed(2)}`;
-  report += `\n📈 Entries: ${expenses.length}`;
-
-  return report;
+    return fullName;
+  }
+  // Fallback a ID
+  return 'User_' + chat.id;
 }
