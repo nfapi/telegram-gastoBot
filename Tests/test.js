@@ -76,6 +76,43 @@ function testComandoReporte() {
   }
 }
 
+// Test 2b: Comando /mireporte (usuario solicita su propio reporte)
+function testComandoMiReporte() {
+  Logger.log('=== TEST 2b: Comando /mireporte ===');
+  
+  var chat = { 
+    id: "8553550912",
+    username: "testuser",
+    first_name: "Nicolas",
+    type: "private"
+  };
+  var from = { 
+    username: "testuser", 
+    first_name: "Nicolas" 
+  };
+  var unixTimestamp = Math.floor(Date.now() / 1000);
+  
+  var message = { 
+    chat: chat, 
+    from: from, 
+    text: "/mireporte",
+    date: unixTimestamp
+  };
+
+  var event = {
+    postData: {
+      contents: JSON.stringify({ message: message })
+    }
+  };
+
+  try {
+    doPost(event);
+    Logger.log('✅ TEST PASÓ: Comando /mireporte ejecutado');
+  } catch (error) {
+    Logger.log('❌ TEST FALLÓ: ' + error.toString());
+  }
+}
+
 // Test 3: Comando /ayuda
 function testComandoAyuda() {
   Logger.log('=== TEST 3: Comando /ayuda ===');
@@ -195,6 +232,7 @@ function runAllTests() {
   Logger.log('');
   
   testComandoReporte();
+  testComandoMiReporte();
   Logger.log('');
   
   testComandoAyuda();

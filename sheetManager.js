@@ -208,3 +208,71 @@ function reporteMes(sheetName) {
 
   return report;
 }
+
+/**
+ * Genera un reporte del mes actual para un usuario específico dentro de una sheet.
+ * Filtra las filas por la columna 'User' (índice 4 en la sheet) y luego agrupa por categoría.
+ */
+function reporteMesUsuario(sheetName, userDisplayName) {
+  var sheet = getSpreadsheet(sheetName);
+  var rows = sheet.getDataRange().getValues();
+
+  var now = new Date();
+  var mesActual = now.getMonth();
+  var anioActual = now.getFullYear();
+
+  const categoryTotals = {};
+  let grandTotal = 0;
+  let count = 0;
+
+  // Iterar filas (saltando header)
+  for (var i = 1; i < rows.length; i++) {
+    var row = rows[i];
+    var date = new Date(row[0]);
+    var amount = parseFloat(row[1]) || 0;
+    var category = row[2] || 'Sin categoría';
+    var user = row[4] || '';
+
+    if (user !== userDisplayName) continue;
+
+    if (date.getMonth() === mesActual && date.getFullYear() === anioActual) {
+      if (!categoryTotals[category]) categoryTotals[category] = 0;
+      categoryTotals[category] += amount;
+      grandTotal += amount;
+      count++;
+    }
+  }
+
+  if (count === 0) {
+    return '📊 Tu reporte del mes actual\n\nNo tienes gastos registrados este mes.';
+  }
+
+  const sortedCategories = Object.entries(categoryTotals).sort((a, b) => b[1] - a[1]);
+
+  let report = '📊 Tu reporte del mes actual\n\n';
+
+  sortedCategories.forEach(function(pair){
+    var category = pair[0];
+    var total = pair[1];
+    const percentage = ((total / grandTotal) * 100).toFixed(1);
+    const montoFormateado = new Intl.NumberFormat('es-ES', {
+      style: 'currency',
+      currency: 'ARS',
+      currencyDisplay: 'symbol',
+      minimumFractionDigits: 2
+    }).format(total);
+    report += category + ': ' + montoFormateado + ' (' + percentage + '%)\n';
+  });
+
+  const totalFormateado = new Intl.NumberFormat('es-ES', {
+    style: 'currency',
+    currency: 'ARS',
+    currencyDisplay: 'symbol',
+    minimumFractionDigits: 2
+  }).format(grandTotal);
+
+  report += '\n💰 Total: ' + totalFormateado;
+  report += '\n📈 Registros: ' + count;
+
+  return report;
+}

@@ -20,7 +20,9 @@ function doPost(e) {
 
     // Verificar si es un comando
     if (text.startsWith('/')) {
-      manejarComando(chat_id, text, msg.chat);
+      // Pasar el objeto `msg` completo para que `manejarComando` pueda
+      // identificar al usuario que solicita comandos como `/mireporte`.
+      manejarComando(chat_id, text, msg);
       return;
     }
 
@@ -94,18 +96,26 @@ function manejarCallbackQuery(callbackQuery) {
 /**
  * Maneja comandos de Telegram (/reporte, /ayuda, /categorias, etc).
  */
-function manejarComando(chat_id, comando, chat) {
+function manejarComando(chat_id, comando, msg) {
   var comandoLimpio = comando.toLowerCase().trim();
-  
+  var chat = msg.chat;
+
   if (comandoLimpio === '/reporte') {
     var sheetName = getChatDisplayName(chat);
     var reporteMsg = reporteMes(sheetName);
+    sendResponse(chat_id, reporteMsg);
+  } else if (comandoLimpio === '/mireporte') {
+    // Reporte solo para el usuario que lo solicita (filtrado por columna 'User')
+    var sheetName = getChatDisplayName(chat);
+    var userName = getUserDisplayName(msg.from);
+    var reporteMsg = reporteMesUsuario(sheetName, userName);
     sendResponse(chat_id, reporteMsg);
   } else if (comandoLimpio === '/categorias') {
     sendCategoriesKeyboard(chat_id);
   } else if (comandoLimpio === '/ayuda') {
     var ayuda = "📋 Comandos disponibles:\n\n" +
-                "/reporte - Ver gastos del mes actual por categoría\n" +
+                "/reporte - Ver gastos del mes actual por categoría (grupo)\n" +
+                "/mireporte - Ver tus gastos del mes actual\n" +
                 "/categorias - Ver categorías predefinidas\n" +
                 "/ayuda - Ver esta ayuda\n\n" +
                 "📝 Para registrar un gasto, envía:\n" +
