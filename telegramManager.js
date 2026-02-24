@@ -38,6 +38,105 @@ function setTelegramToken(token){
 }
 
 /**
+ * Categorías predeterminadas con emojis
+ */
+const PREDEFINED_CATEGORIES = [
+  { emoji: '🍔', nombre: 'Comida' },
+  { emoji: '🚗', nombre: 'Transporte' },
+  { emoji: '🎬', nombre: 'Entretenimiento' },
+  { emoji: '💊', nombre: 'Salud' },
+  { emoji: '📚', nombre: 'Educación' },
+  { emoji: '🏠', nombre: 'Vivienda' },
+  { emoji: '⚡', nombre: 'Servicios' },
+  { emoji: '🛍️', nombre: 'Compras' },
+  { emoji: '🆘', nombre: 'Ayuda' },
+  { emoji: '🎁', nombre: 'Regalos' }
+];
+
+/**
+ * Envía un teclado inline con las categorías predefinidas.
+ */
+function sendCategoriesKeyboard(chatId) {
+  var inlineKeyboard = [];
+  
+  // Crear filas de 2 botones cada una
+  for (var i = 0; i < PREDEFINED_CATEGORIES.length; i += 2) {
+    var row = [];
+    
+    // Botón 1
+    var cat1 = PREDEFINED_CATEGORIES[i];
+    row.push({
+      text: cat1.emoji + ' ' + cat1.nombre,
+      callback_data: 'categoria_' + cat1.nombre.toLowerCase()
+    });
+    
+    // Botón 2 (si existe)
+    if (i + 1 < PREDEFINED_CATEGORIES.length) {
+      var cat2 = PREDEFINED_CATEGORIES[i + 1];
+      row.push({
+        text: cat2.emoji + ' ' + cat2.nombre,
+        callback_data: 'categoria_' + cat2.nombre.toLowerCase()
+      });
+    }
+    
+    inlineKeyboard.push(row);
+  }
+  
+  var payload = {
+    chat_id: chatId,
+    text: '📂 ¿Quieres cambiar la categoría?',
+    reply_markup: {
+      inline_keyboard: inlineKeyboard
+    }
+  };
+  
+  sendMessageWithKeyboard(payload);
+}
+
+/**
+ * Envía un mensaje con teclado inline (JSON).
+ */
+function sendMessageWithKeyboard(payload) {
+  var url = getTelegramApiUrl() + '/sendMessage';
+  var options = {
+    method: 'post',
+    contentType: 'application/json',
+    payload: JSON.stringify(payload)
+  };
+  
+  try {
+    var response = UrlFetchApp.fetch(url, options);
+    Logger.log('Message with keyboard sent: ' + response.getResponseCode());
+  } catch (error) {
+    Logger.log('Error sending message with keyboard: ' + error.toString());
+  }
+}
+
+/**
+ * Responde a un callback_query para eliminar el "loading" en Telegram.
+ */
+function answerCallbackQuery(callbackId, text) {
+  var url = getTelegramApiUrl() + '/answerCallbackQuery';
+  var payload = {
+    callback_query_id: callbackId,
+    text: text || '✅',
+    show_alert: false
+  };
+  
+  var options = {
+    method: 'post',
+    contentType: 'application/json',
+    payload: JSON.stringify(payload)
+  };
+  
+  try {
+    UrlFetchApp.fetch(url, options);
+  } catch (error) {
+    Logger.log('Error answering callback: ' + error.toString());
+  }
+}
+
+/**
  * Formatea un objeto `expense` en un mensaje legible para el usuario.
  * Mantener la lógica de presentación separada del endpoint `doPost`.
  */

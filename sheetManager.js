@@ -129,6 +129,26 @@ function getUserDisplayName(from) {
 }
 
 /**
+ * Actualiza la categoría del último gasto registrado para un usuario/grupo.
+ * Se usa cuando el usuario cambia de categoría desde el keyboard.
+ */
+function updateLastExpenseCategory(sheetName, newCategory) {
+  try {
+    var sheet = getSpreadsheet(sheetName);
+    var rows = sheet.getDataRange().getValues();
+    
+    // Obtener la última fila (índice de datos - 1, porque index 0 es header)
+    if (rows.length > 1) {
+      var lastRowIndex = rows.length;
+      // Actualizar la columna de categoría (índice 2)
+      sheet.getRange(lastRowIndex, 3).setValue(newCategory);
+    }
+  } catch (error) {
+    Logger.log('Error updating last expense category: ' + error.toString());
+  }
+}
+
+/**
  * Genera un reporte de gastos del mes corriente (actual).
  * Filtra por fecha y agrupa por categoría.
  */
