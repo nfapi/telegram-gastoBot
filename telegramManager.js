@@ -50,7 +50,8 @@ const PREDEFINED_CATEGORIES = [
   { emoji: '⚡', nombre: 'Servicios' },
   { emoji: '🛍️', nombre: 'Compras' },
   { emoji: '🆘', nombre: 'Ayuda' },
-  { emoji: '🎁', nombre: 'Regalos' }
+  { emoji: '🎁', nombre: 'Regalos' },
+  { emoji: '👕', nombre: 'Ropa Ro' }
 ];
 
 /**
