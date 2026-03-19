@@ -80,35 +80,80 @@ function getUserExpenses(sheetName){
 
 
 /**
- * Genera un reporte resumido por categoría para un `sheetName` (chat id).
- * Devuelve un string con totales y porcentajes.
+ * Convierte número de mes (0-11) a nombre en español.
  */
-function reporte(sheetName){
+function getNombreMes(mes) {
+  var meses = ['Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio',
+                'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre'];
+  return meses[mes] || 'Mes inválido';
+}
+
+/**
+ * Genera un reporte genérico para un mes y año específico.
+ * Filtra gastos por fecha (mes/año) y agrupa por categoría.
+ */
+function reporteMesPorFecha(sheetName, mes, anio) {
   var expenses = getUserExpenses(sheetName);
   const categoryTotals = {};
   let grandTotal = 0;
+  let count = 0;
 
-  expenses.forEach((expense) => {
-    if (!categoryTotals[expense.category]) {
-      categoryTotals[expense.category] = 0;
+  expenses.forEach(function(expense) {
+    var expenseDate = new Date(expense.date);
+    if (expenseDate.getMonth() === mes && expenseDate.getFullYear() === anio) {
+      if (!categoryTotals[expense.category]) {
+        categoryTotals[expense.category] = 0;
+      }
+      categoryTotals[expense.category] += expense.amount;
+      grandTotal += expense.amount;
+      count++;
     }
-    categoryTotals[expense.category] += expense.amount;
-    grandTotal += expense.amount;
   });
+
+  if (count === 0) {
+    var nombreMes = getNombreMes(mes);
+    return '📊 Reporte de ' + nombreMes + ' ' + anio + '\n\nSin gastos registrados en este mes.';
+  }
 
   const sortedCategories = Object.entries(categoryTotals).sort((a, b) => b[1] - a[1]);
 
-  let report = '📊 Monthly Expense Report\n\n';
+  var nombreMes = getNombreMes(mes);
+  let report = '📊 Reporte de ' + nombreMes + ' ' + anio + '\n\n';
 
-  sortedCategories.forEach(([category, total]) => {
-    const percentage = grandTotal ? ((total / grandTotal) * 100).toFixed(1) : '0.0';
-    report += `${category}: $${total.toFixed(2)} (${percentage}%)\n`;
+  sortedCategories.forEach(function(pair) {
+    var category = pair[0];
+    var total = pair[1];
+    const percentage = ((total / grandTotal) * 100).toFixed(1);
+    const montoFormateado = new Intl.NumberFormat('es-ES', {
+      style: 'currency',
+      currency: 'ARS',
+      currencyDisplay: 'symbol',
+      minimumFractionDigits: 2
+    }).format(total);
+    report += category + ': ' + montoFormateado + ' (' + percentage + '%)\n';
   });
 
-  report += `\n💰 Total: $${grandTotal.toFixed(2)}`;
-  report += `\n📈 Entries: ${expenses.length}`;
+  const totalFormateado = new Intl.NumberFormat('es-ES', {
+    style: 'currency',
+    currency: 'ARS',
+    currencyDisplay: 'symbol',
+    minimumFractionDigits: 2
+  }).format(grandTotal);
+
+  report += '\n💰 Total: ' + totalFormateado;
+  report += '\n📈 Registros: ' + count;
 
   return report;
+}
+
+/**
+ * Refactorizar reporteMes para usar reporteMesPorFecha con mes actual.
+ */
+function reporteMes(sheetName) {
+  var now = new Date();
+  var mesActual = now.getMonth();
+  var anioActual = now.getFullYear();
+  return reporteMesPorFecha(sheetName, mesActual, anioActual);
 }
 
 /**
@@ -210,16 +255,12 @@ function reporteMes(sheetName) {
 }
 
 /**
- * Genera un reporte del mes actual para un usuario específico dentro de una sheet.
- * Filtra las filas por la columna 'User' (índice 4 en la sheet) y luego agrupa por categoría.
+ * Genera un reporte para un usuario específico en un mes/año dado.
+ * Filtra por columna 'User' y fecha.
  */
-function reporteMesUsuario(sheetName, userDisplayName) {
+function reporteMesUsuarioPorFecha(sheetName, userDisplayName, mes, anio) {
   var sheet = getSpreadsheet(sheetName);
   var rows = sheet.getDataRange().getValues();
-
-  var now = new Date();
-  var mesActual = now.getMonth();
-  var anioActual = now.getFullYear();
 
   const categoryTotals = {};
   let grandTotal = 0;
@@ -234,24 +275,25 @@ function reporteMesUsuario(sheetName, userDisplayName) {
     var user = row[4] || '';
 
     if (user !== userDisplayName) continue;
+    if (date.getMonth() !== mes || date.getFullYear() !== anio) continue;
 
-    if (date.getMonth() === mesActual && date.getFullYear() === anioActual) {
-      if (!categoryTotals[category]) categoryTotals[category] = 0;
-      categoryTotals[category] += amount;
-      grandTotal += amount;
-      count++;
-    }
+    if (!categoryTotals[category]) categoryTotals[category] = 0;
+    categoryTotals[category] += amount;
+    grandTotal += amount;
+    count++;
   }
 
   if (count === 0) {
-    return '📊 Tu reporte del mes actual\n\nNo tienes gastos registrados este mes.';
+    var nombreMes = getNombreMes(mes);
+    return '📊 Tu reporte de ' + nombreMes + ' ' + anio + '\n\nNo tienes gastos registrados en este mes.';
   }
 
   const sortedCategories = Object.entries(categoryTotals).sort((a, b) => b[1] - a[1]);
 
-  let report = '📊 Tu reporte del mes actual\n\n';
+  var nombreMes = getNombreMes(mes);
+  let report = '📊 Tu reporte de ' + nombreMes + ' ' + anio + '\n\n';
 
-  sortedCategories.forEach(function(pair){
+  sortedCategories.forEach(function(pair) {
     var category = pair[0];
     var total = pair[1];
     const percentage = ((total / grandTotal) * 100).toFixed(1);
@@ -275,4 +317,14 @@ function reporteMesUsuario(sheetName, userDisplayName) {
   report += '\n📈 Registros: ' + count;
 
   return report;
+}
+
+/**
+ * Refactorizar reporteMesUsuario para usar reporteMesUsuarioPorFecha con mes actual.
+ */
+function reporteMesUsuario(sheetName, userDisplayName) {
+  var now = new Date();
+  var mesActual = now.getMonth();
+  var anioActual = now.getFullYear();
+  return reporteMesUsuarioPorFecha(sheetName, userDisplayName, mesActual, anioActual);
 }

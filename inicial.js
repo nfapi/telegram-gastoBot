@@ -94,30 +94,116 @@ function manejarCallbackQuery(callbackQuery) {
 }
 
 /**
+ * Parsea un parámetro de mes de string a número (0-11).
+ * Acepta: número (0-11 ó 1-12), nombre mes en español (enero, feb, etc)
+ */
+function parseMesParam(param) {
+  if (!param) return null;
+  param = param.toLowerCase().trim();
+  
+  // Intentar como número
+  var num = parseInt(param, 10);
+  if (!isNaN(num)) {
+    if (num >= 1 && num <= 12) return num - 1;  // Convertir 1-12 a 0-11
+    if (num >= 0 && num <= 11) return num;      // Ya en 0-11
+  }
+  
+  // Intentar como nombre de mes
+  var meses = ['enero', 'febrero', 'marzo', 'abril', 'mayo', 'junio',
+                'julio', 'agosto', 'septiembre', 'octubre', 'noviembre', 'diciembre'];
+  var abreviaturas = ['ene', 'feb', 'mar', 'abr', 'may', 'jun',
+                       'jul', 'ago', 'sep', 'oct', 'nov', 'dic'];
+  
+  for (var i = 0; i < meses.length; i++) {
+    if (param.startsWith(meses[i]) || param.startsWith(abreviaturas[i])) {
+      return i;
+    }
+  }
+  
+  return null;
+}
+
+/**
  * Maneja comandos de Telegram (/reporte, /ayuda, /categorias, etc).
  */
 function manejarComando(chat_id, comando, msg) {
   var comandoLimpio = comando.toLowerCase().trim();
   var chat = msg.chat;
+  var partes = comandoLimpio.split(/\s+/);
+  var cmd = partes[0];
 
-  if (comandoLimpio === '/reporte') {
+  if (cmd === '/reporte') {
     var sheetName = getChatDisplayName(chat);
-    var reporteMsg = reporteMes(sheetName);
+    var reporteMsg;
+    
+    // Si hay parámetro de mes o tipo de reporte
+    if (partes.length > 1) {
+      // Soportar: /reporte anual
+      if (partes[1] === 'anual') {
+        reporteMsg = reporteAnualUltimos12Meses(sheetName);
+        sendResponse(chat_id, reporteMsg);
+        return;
+      }
+
+      var mesParam = parseMesParam(partes[1]);
+      if (mesParam === null) {
+        sendResponse(chat_id, "❌ Mes inválido. Usa: /reporte [número 1-12 o nombre, ej: /reporte 3 o /reporte marzo] o /reporte anual");
+        return;
+      }
+      var now = new Date();
+      reporteMsg = reporteMesPorFecha(sheetName, mesParam, now.getFullYear());
+    } else {
+      // Sin parámetro: mes actual
+      reporteMsg = reporteMes(sheetName);
+    }
     sendResponse(chat_id, reporteMsg);
-  } else if (comandoLimpio === '/mireporte') {
-    // Reporte solo para el usuario que lo solicita (filtrado por columna 'User')
+  } else if (cmd === '/mireporte') {
+    // Reporte solo para el usuario que lo solicita
     var sheetName = getChatDisplayName(chat);
     var userName = getUserDisplayName(msg.from);
-    var reporteMsg = reporteMesUsuario(sheetName, userName);
+    var reporteMsg;
+    
+    if (partes.length > 1) {
+      // Soportar: /mireporte anual
+      if (partes[1] === 'anual') {
+        reporteMsg = reporteAnualUsuarioUltimos12Meses(sheetName, userName);
+        sendResponse(chat_id, reporteMsg);
+        return;
+      }
+
+      var mesParam = parseMesParam(partes[1]);
+      if (mesParam === null) {
+        sendResponse(chat_id, "❌ Mes inválido. Usa: /mireporte [número 1-12 o nombre, ej: /mireporte 3 o /mireporte marzo] o /mireporte anual");
+        return;
+      }
+      var now = new Date();
+      reporteMsg = reporteMesUsuarioPorFecha(sheetName, userName, mesParam, now.getFullYear());
+    } else {
+      // Sin parámetro: mes actual
+      reporteMsg = reporteMesUsuario(sheetName, userName);
+    }
     sendResponse(chat_id, reporteMsg);
-  } else if (comandoLimpio === '/categorias') {
+  } else if (cmd === '/reporteanual') {
+    var sheetName = getChatDisplayName(chat);
+    var reporteMsg = reporteAnualUltimos12Meses(sheetName);
+    sendResponse(chat_id, reporteMsg);
+  } else if (cmd === '/mireporteanual') {
+    var sheetName = getChatDisplayName(chat);
+    var userName = getUserDisplayName(msg.from);
+    var reporteMsg = reporteAnualUsuarioUltimos12Meses(sheetName, userName);
+    sendResponse(chat_id, reporteMsg);
+  } else if (cmd === '/categorias') {
     sendCategoriesKeyboard(chat_id);
-  } else if (comandoLimpio === '/ayuda') {
+  } else if (cmd === '/ayuda') {
     var ayuda = "📋 Comandos disponibles:\n\n" +
-                "/reporte - Ver gastos del mes actual por categoría (grupo)\n" +
-                "/mireporte - Ver tus gastos del mes actual\n" +
+                "/reporte [mes] (o /reporte anual) - Reporte del grupo\n" +
+                "/mireporte [mes] (o /mireporte anual) - Tu reporte\n" +
+                "/reporteanual - Total por mes de los últimos 12 meses (grupo)\n" +
+                "/mireporteanual - Total por mes de los últimos 12 meses (tú)\n" +
                 "/categorias - Ver categorías predefinidas\n" +
                 "/ayuda - Ver esta ayuda\n\n" +
+                "📝 Parámetro mes: número 1-12 o nombre (enero, feb, etc)\n" +
+                "Ejemplos: /reporte 3  o  /reporte marzo\n\n" +
                 "📝 Para registrar un gasto, envía:\n" +
                 "'Categoria monto' (ej: 'Café 150')";
     sendResponse(chat_id, ayuda);

@@ -76,6 +76,43 @@ function testComandoReporte() {
   }
 }
 
+// Test 2b: Comando /reporte con parámetro de mes
+function testComandoReporteMes() {
+  Logger.log('=== TEST 2b: Comando /reporte [mes] ===');
+  
+  var chat = { 
+    id: "8553550912",
+    username: "testuser",
+    first_name: "Nicolas",
+    type: "private"
+  };
+  var from = { 
+    username: "testuser", 
+    first_name: "Nicolas" 
+  };
+  var unixTimestamp = Math.floor(Date.now() / 1000);
+  
+  var message = { 
+    chat: chat, 
+    from: from, 
+    text: "/reporte 1",
+    date: unixTimestamp
+  };
+
+  var event = {
+    postData: {
+      contents: JSON.stringify({ message: message })
+    }
+  };
+
+  try {
+    doPost(event);
+    Logger.log('✅ TEST PASÓ: Comando /reporte 1 ejecutado');
+  } catch (error) {
+    Logger.log('❌ TEST FALLÓ: ' + error.toString());
+  }
+}
+
 // Test 2b: Comando /mireporte (usuario solicita su propio reporte)
 function testComandoMiReporte() {
   Logger.log('=== TEST 2b: Comando /mireporte ===');
@@ -108,6 +145,80 @@ function testComandoMiReporte() {
   try {
     doPost(event);
     Logger.log('✅ TEST PASÓ: Comando /mireporte ejecutado');
+  } catch (error) {
+    Logger.log('❌ TEST FALLÓ: ' + error.toString());
+  }
+}
+
+// Test 2c: Comando /reporteanual
+function testComandoReporteAnual() {
+  Logger.log('=== TEST 2c: Comando /reporteanual ===');
+  
+  var chat = { 
+    id: "8553550912",
+    username: "testuser",
+    first_name: "Nicolas",
+    type: "private"
+  };
+  var from = { 
+    username: "testuser", 
+    first_name: "Nicolas" 
+  };
+  var unixTimestamp = Math.floor(Date.now() / 1000);
+  
+  var message = { 
+    chat: chat, 
+    from: from, 
+    text: "/reporteanual",
+    date: unixTimestamp
+  };
+
+  var event = {
+    postData: {
+      contents: JSON.stringify({ message: message })
+    }
+  };
+
+  try {
+    doPost(event);
+    Logger.log('✅ TEST PASÓ: Comando /reporteanual ejecutado');
+  } catch (error) {
+    Logger.log('❌ TEST FALLÓ: ' + error.toString());
+  }
+}
+
+// Test 2d: Comando /mireporteanual
+function testComandoMiReporteAnual() {
+  Logger.log('=== TEST 2d: Comando /mireporteanual ===');
+  
+  var chat = { 
+    id: "8553550912",
+    username: "testuser",
+    first_name: "Nicolas",
+    type: "private"
+  };
+  var from = { 
+    username: "testuser", 
+    first_name: "Nicolas" 
+  };
+  var unixTimestamp = Math.floor(Date.now() / 1000);
+  
+  var message = { 
+    chat: chat, 
+    from: from, 
+    text: "/mireporteanual",
+    date: unixTimestamp
+  };
+
+  var event = {
+    postData: {
+      contents: JSON.stringify({ message: message })
+    }
+  };
+
+  try {
+    doPost(event);
+    Logger.log('✅ TEST PASÓ: Comando /mireporteanual ejecutado');
   } catch (error) {
     Logger.log('❌ TEST FALLÓ: ' + error.toString());
   }
@@ -232,7 +343,18 @@ function runAllTests() {
   Logger.log('');
   
   testComandoReporte();
+  Logger.log('');
+
+  testComandoReporteMes();
+  Logger.log('');
+
   testComandoMiReporte();
+  Logger.log('');
+
+  testComandoReporteAnual();
+  Logger.log('');
+
+  testComandoMiReporteAnual();
   Logger.log('');
   
   testComandoAyuda();
